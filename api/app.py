@@ -51,8 +51,6 @@ def upload():
             "errors": formErrors
         }
         return jsonify(errors)
-    
-    return render_template('upload.html', form=form)
 
 # Function to collect form errors from Flask-WTF
 def form_errors(form):
