@@ -1,0 +1,5 @@
+Flask==2.2.2
+Flask-WTF==1.1.1
+WTForms==3.0.1
+Werkzeug==2.2.2
+zipp==3.12.1
