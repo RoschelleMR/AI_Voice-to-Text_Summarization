@@ -1,4 +1,5 @@
 from flask import Flask, render_template, request, jsonify
+from flask_cors import CORS
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileField, FileRequired, FileAllowed
 from wtforms.validators import DataRequired
@@ -7,8 +8,13 @@ from wtforms.validators import DataRequired
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'SECRETKEY'  # Replace with a real secret key
 
+CORS(app)
+
 class UploadForm(FlaskForm):
-    audio = FileField('Audio', validators=[
+    class Meta:
+        csrf = False
+        
+    audio = FileField('audio', validators=[
         DataRequired(),
         FileRequired(),
         FileAllowed(['mp3', 'wav', 'ogg'], 'Audio Files Only (.mp3, .wav, .ogg)!')
@@ -50,7 +56,7 @@ def upload():
         errors = {
             "errors": formErrors
         }
-        return jsonify(errors)
+        return jsonify(errors), 400
 
 # Function to collect form errors from Flask-WTF
 def form_errors(form):
