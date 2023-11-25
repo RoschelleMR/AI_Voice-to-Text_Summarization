@@ -1,12 +1,17 @@
-from flask import Flask, render_template, request, jsonify
-from flask_cors import CORS
+from flask import Flask, render_template, request, jsonify, send_from_directory
+from flask_cors import CORS, cross_origin
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileField, FileRequired, FileAllowed
 from wtforms.validators import DataRequired
 
+from config import Config
+
+import os
+import whisper
+
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'SECRETKEY'  # Replace with a real secret key
+app.config.from_object(Config)
 
 CORS(app)
 
@@ -17,7 +22,7 @@ class UploadForm(FlaskForm):
     audio = FileField('audio', validators=[
         DataRequired(),
         FileRequired(),
-        FileAllowed(['mp3', 'wav', 'ogg'], 'Audio Files Only (.mp3, .wav, .ogg)!')
+        FileAllowed(['mp3', 'wav', 'ogg', 'm4a'], 'Audio Files Only (.mp3, .wav, .ogg, .m4a)!')
     ])
 
 
@@ -27,25 +32,38 @@ def index():
     return "Hello World"
 
 #Checking if sending JSON works
-@app.route('/json', methods=['GET'])
+@app.route('/api/json', methods=['GET'])
 def jsontest():
     return jsonify(message="This is a JSON message")
 
 
-@app.route('/upload', methods=['POST'])
+@app.route('/api/upload', methods=['POST'])
+@cross_origin()
 def upload():
     form = UploadForm()
     if form.validate_on_submit():
         audio_file = form.audio.data
         print('File received: ', audio_file.filename)
+        
+        # Save audio file to folder
+        audio_file.save(audio_file.filename)
 
         ##################################
         # Transcribe and Summarize the file here
         ##################################
         
+        ### TRANSCRIBE CODE
+        
+        model = whisper.load_model('base')
+        result = model.transcribe(audio_file.filename, fp16=False)
+        print('This is the transciption: ',result['text'])
+
+        with open('transcription.txt', 'w') as f:
+            f.write(result['text'])
+        
         data = {
-            "transcription": "This is the transcription", # Don't know if you want to send the raw transcription as well
-            "summary": "This is the summary"
+            "transcription": result['text'], # Don't know if you want to send the raw transcription as well
+            "summary": result['text']
         }
 
         return jsonify(data)
@@ -57,6 +75,11 @@ def upload():
             "errors": formErrors
         }
         return jsonify(errors), 400
+    
+@app.route('/api/uploads/<filename>')
+def getAudioFile(filename):
+    root_dir = os.getcwd()
+    return send_from_directory(os.path.join(root_dir, app.config['UPLOAD_FOLDER']), filename)
 
 # Function to collect form errors from Flask-WTF
 def form_errors(form):
@@ -85,10 +108,10 @@ def add_header(response):
     return response
 
 
-@app.errorhandler(404)
-def page_not_found(error):
-    """Custom 404 page."""
-    return render_template('404.html'), 404
+# @app.errorhandler(404)
+# def page_not_found(error):
+#     """Custom 404 page."""
+#     return render_template('404.html'), 404
 
 
 if __name__ == '__main__':

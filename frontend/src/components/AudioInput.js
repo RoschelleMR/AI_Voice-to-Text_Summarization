@@ -23,14 +23,19 @@ export default function AudioInput({ setTranscriptionData }) {
     }
 
     const formData = new FormData();
+    
     formData.append('audio', file);
 
-    axios.post('http://localhost:5000/upload', formData, {
+    
+
+    axios.post('http://localhost:5000/api/upload', formData, {
       headers: {
         'Content-Type': 'multipart/form-data'
       }
+      
     })
     .then(response => {
+      
       setUploadSuccessAlertActive(true)
       console.log("File uploaded successfully", response.data);
       setTranscriptionData(response.data)
@@ -45,11 +50,14 @@ export default function AudioInput({ setTranscriptionData }) {
 
   const onFileChange = (e) => {
     const selectedFile = e.target.files[0]
+
+    console.log(selectedFile)
+    
     setUploadFailureAlertActive(false)
     setUploadSuccessAlertActive(false)
 
     if (selectedFile) {
-      const allowedTypes = ['audio/mp3', 'audio/wav', 'audio/ogg', 'audio/mpeg']
+      const allowedTypes = ['audio/mp3', 'audio/wav', 'audio/ogg', 'audio/mpeg', 'audio/x-m4a']
 
       if (!allowedTypes.includes(selectedFile.type)) {
         e.target.value = ''

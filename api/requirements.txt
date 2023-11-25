@@ -4,3 +4,7 @@ Flask-WTF==1.1.1
 WTForms==3.0.1
 Werkzeug==2.2.2
 zipp==3.12.1
+openai-whisper == 20231117
+ffmpeg
+transformers
+torch
