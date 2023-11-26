@@ -8,3 +8,4 @@ openai-whisper == 20231117
 ffmpeg
 transformers
 torch
+sentencepiece

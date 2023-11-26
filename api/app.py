@@ -4,14 +4,13 @@ from flask_wtf import FlaskForm
 from flask_wtf.file import FileField, FileRequired, FileAllowed
 from wtforms.validators import DataRequired
 
-from config import Config
-
 import os
 import whisper
 
+from transformers import PegasusForConditionalGeneration, PegasusTokenizer
+import torch
 
 app = Flask(__name__)
-app.config.from_object(Config)
 
 CORS(app)
 
@@ -48,22 +47,23 @@ def upload():
         # Save audio file to folder
         audio_file.save(audio_file.filename)
 
-        ##################################
-        # Transcribe and Summarize the file here
-        ##################################
-        
         ### TRANSCRIBE CODE
+        
+        ### Load whisper model to transcribe file
         
         model = whisper.load_model('base')
         result = model.transcribe(audio_file.filename, fp16=False)
         print('This is the transciption: ',result['text'])
 
+        ###
+        ### Generate transcription text file
+        ###
+        
         with open('transcription.txt', 'w') as f:
             f.write(result['text'])
         
         data = {
-            "transcription": result['text'], # Don't know if you want to send the raw transcription as well
-            "summary": result['text']
+            "transcription": result['text']
         }
 
         return jsonify(data)
@@ -76,10 +76,46 @@ def upload():
         }
         return jsonify(errors), 400
     
+# Code ot summarize data
+@app.route('/api/summary', methods=['POST'])
+def summarize():
+    
+    if request.method == 'POST':
+        
+        ### Receive json from request
+        transcription_ = request.get_json()
+
+        transcription_data = transcription_.get('transcription')
+        print('transcription: ',transcription_data)
+    
+        ### Using pegasus model to summarize data
+        
+        model_name = "google/pegasus-cnn_dailymail"
+        tokenizer = PegasusTokenizer.from_pretrained(model_name)
+
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        model = PegasusForConditionalGeneration.from_pretrained(model_name).to(device)
+        
+        ### Tokenizing text
+        tokenized_text = tokenizer.encode(transcription_data, truncation=True, return_tensors='pt', max_length=512).to(device)
+        summary_parsed = model.generate(tokenized_text, min_length = 30, max_length = 300)
+        summary = tokenizer.decode(summary_parsed[0], skip_special_tokens=True)
+        
+        print('Summary: ',summary)
+        
+        # Generate summarization.txt file
+        with open('summarization.txt', 'w') as f:
+            f.write(summary)
+        
+        return jsonify(summary)
+
+
+### Gets files to download
 @app.route('/api/uploads/<filename>')
-def getAudioFile(filename):
+def getFile(filename):
     root_dir = os.getcwd()
-    return send_from_directory(os.path.join(root_dir, app.config['UPLOAD_FOLDER']), filename)
+    return send_from_directory(root_dir, filename, as_attachment=True)
+
 
 # Function to collect form errors from Flask-WTF
 def form_errors(form):
