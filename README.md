@@ -29,7 +29,7 @@ $ pip install -r requirements.txt
 ```bash
 $ flask --app app --debug run (running python app.py can also work)
 ```
-#### The back-end server will run on `http://localhost:4000`
+#### The back-end server will run on `http://localhost:5000`
 
 <h2>
   <i>Frontend Side</i>
